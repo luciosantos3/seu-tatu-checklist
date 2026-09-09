@@ -89,6 +89,12 @@
     return Math.max(0, Math.ceil(RETENTION_DAYS - elapsedDays));
   }
 
+  function daysRunning(createdAt) {
+    var created = new Date(createdAt).getTime();
+    var elapsedDays = Math.floor((Date.now() - created) / (1000 * 60 * 60 * 24));
+    return Math.max(0, elapsedDays);
+  }
+
   function hostnameOf(url) {
     try { return new URL(url).hostname.replace(/^www\./, ""); }
     catch (e) { return url; }
@@ -110,6 +116,13 @@
     typeTag.className = "tag type";
     typeTag.textContent = TYPE_LABEL[entry.type] || entry.type;
     tags.appendChild(typeTag);
+
+    var running = daysRunning(entry.createdAt);
+    var ageTag = document.createElement("span");
+    ageTag.className = "tag age";
+    ageTag.textContent = running === 0 ? "hoje" : running + "d";
+    tags.appendChild(ageTag);
+
     var remaining = daysRemaining(entry.createdAt);
     if (remaining <= 3) {
       var soonTag = document.createElement("span");
@@ -256,6 +269,7 @@
   };
 
   window.render = render;
+  window.load = load;
 
   // ---------- Splash ----------
   (function () {
@@ -302,7 +316,7 @@
   // never overwrites something someone is actively typing.
   setInterval(function () {
     if (document.visibilityState === "visible" && !isModalOpen()) load(true);
-  }, 20000);
+  }, 30000);
 
   load();
 })();
