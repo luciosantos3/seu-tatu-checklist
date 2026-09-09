@@ -8,7 +8,6 @@ var SHELL_FILES = [
   "/index.html",
   "/style.css",
   "/app.js",
-  "/checklist-data.js",
   "/logo.png",
   "/manifest.json",
   "/icon-192.png",

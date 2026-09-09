@@ -1,4 +1,4 @@
-const { getStore } = require("@netlify/blobs");
+const { getStore, connectLambda } = require("@netlify/blobs");
 
 const RETENTION_DAYS = 15;
 const RETENTION_MS = RETENTION_DAYS * 24 * 60 * 60 * 1000;
@@ -37,13 +37,18 @@ async function saveEntries(store, entries) {
 }
 
 exports.handler = async (event) => {
+  // Required for Netlify Blobs to work in this classic (Lambda-compatible)
+  // handler format — without this, getStore() fails in production even
+  // though it works fine locally via `netlify dev`.
+  connectLambda(event);
+
   if (event.httpMethod === "OPTIONS") {
     return jsonResponse(200, {});
   }
 
-  const store = getStore(STORE_NAME);
-
   try {
+    const store = getStore(STORE_NAME);
+
     if (event.httpMethod === "GET") {
       const entries = await loadEntries(store);
       // Lazily persist the pruned list so the store never keeps growing.
@@ -64,9 +69,9 @@ exports.handler = async (event) => {
         title: payload.title,
         responsible: payload.responsible,
         type: payload.type || "video",
+        link: payload.link || "",
         notes: payload.notes || "",
         status: "a_gravar",
-        items: Array.isArray(payload.items) ? payload.items : [],
         createdAt: now,
         updatedAt: now,
       };
@@ -87,7 +92,10 @@ exports.handler = async (event) => {
       }
       const updated = {
         ...entries[idx],
-        items: payload.items !== undefined ? payload.items : entries[idx].items,
+        title: payload.title !== undefined ? payload.title : entries[idx].title,
+        responsible: payload.responsible !== undefined ? payload.responsible : entries[idx].responsible,
+        type: payload.type !== undefined ? payload.type : entries[idx].type,
+        link: payload.link !== undefined ? payload.link : entries[idx].link,
         notes: payload.notes !== undefined ? payload.notes : entries[idx].notes,
         status: payload.status !== undefined ? payload.status : entries[idx].status,
         updatedAt: new Date().toISOString(),

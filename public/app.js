@@ -4,9 +4,7 @@
   var API = "/api/checklist";
   var RETENTION_DAYS = 15;
   var STATUSES = ["a_gravar", "gravando", "revisao", "concluido"];
-  var STATUS_LABEL = { a_gravar: "A Gravar", gravando: "Gravando", revisao: "Em Revisão", concluido: "Concluído" };
   var TYPE_LABEL = { video: "Vídeo", foto: "Foto", reels: "Reels/Stories", ugc: "UGC" };
-  var PHASE_LABEL = { pre: "Pré-produção", durante: "Durante a gravação", pos: "Pós-produção / entrega" };
   var AV_COLORS = ["#3b82f6", "#22c55e", "#f59e0b", "#ec4899", "#a78bfa", "#14b8a6", "#f97316", "#06b6d4", "#84cc16", "#e879f9"];
 
   var entries = [];
@@ -37,10 +35,22 @@
     return s.toUpperCase();
   }
 
+  // Reads the real error message out of a failed API response instead of
+  // hiding it behind a generic string, so problems are visible immediately.
+  function readError(res, fallback) {
+    return res
+      .json()
+      .then(function (data) { return new Error((data && data.error) || fallback); })
+      .catch(function () { return new Error(fallback + " (HTTP " + res.status + ")"); });
+  }
+
   // ---------- Load ----------
   function load() {
     fetch(API)
-      .then(function (r) { if (!r.ok) throw new Error("Falha ao carregar."); return r.json(); })
+      .then(function (r) {
+        if (!r.ok) return readError(r, "Falha ao carregar.").then(function (e) { throw e; });
+        return r.json();
+      })
       .then(function (data) { entries = data.entries || []; render(); })
       .catch(function (err) { toast(err.message || "Erro ao carregar dados.", true); });
   }
@@ -79,10 +89,9 @@
     return Math.max(0, Math.ceil(RETENTION_DAYS - elapsedDays));
   }
 
-  function progressOf(entry) {
-    var total = entry.items.length;
-    var done = entry.items.filter(function (i) { return i.checked; }).length;
-    return { done: done, total: total };
+  function hostnameOf(url) {
+    try { return new URL(url).hostname.replace(/^www\./, ""); }
+    catch (e) { return url; }
   }
 
   function buildCard(entry) {
@@ -110,11 +119,16 @@
     }
     card.appendChild(tags);
 
-    var prog = progressOf(entry);
-    var progEl = document.createElement("div");
-    progEl.className = "card-progress";
-    progEl.innerHTML = "<b>" + prog.done + "/" + prog.total + "</b> itens conferidos";
-    card.appendChild(progEl);
+    if (entry.link) {
+      var linkRow = document.createElement("a");
+      linkRow.className = "card-link";
+      linkRow.href = entry.link;
+      linkRow.target = "_blank";
+      linkRow.rel = "noopener";
+      linkRow.textContent = "🔗 " + hostnameOf(entry.link);
+      linkRow.onclick = function (e) { e.stopPropagation(); };
+      card.appendChild(linkRow);
+    }
 
     var foot = document.createElement("div");
     foot.className = "card-foot";
@@ -138,58 +152,6 @@
   }
 
   // ---------- Modal ----------
-  function buildChecklistUI(items) {
-    var wrap = $("#checklistWrap");
-    wrap.innerHTML = "";
-    ["pre", "durante", "pos"].forEach(function (phase, idx) {
-      var section = document.createElement("div");
-      section.className = "phase-section";
-
-      var hd = document.createElement("div");
-      hd.className = "phase-hd";
-      var num = document.createElement("span");
-      num.className = "phase-num";
-      num.textContent = idx + 1;
-      hd.appendChild(num);
-      var label = document.createElement("span");
-      label.textContent = PHASE_LABEL[phase];
-      hd.appendChild(label);
-      section.appendChild(hd);
-
-      var body = document.createElement("div");
-      body.className = "phase-body";
-      var phaseItems = items.filter(function (i) { return i.phase === phase; });
-      phaseItems.forEach(function (item) {
-        var row = document.createElement("label");
-        row.className = "check-item" + (item.checked ? " checked" : "");
-        var input = document.createElement("input");
-        input.type = "checkbox";
-        input.checked = !!item.checked;
-        input.addEventListener("change", function () {
-          item.checked = input.checked;
-          row.className = "check-item" + (item.checked ? " checked" : "");
-        });
-        var span = document.createElement("span");
-        span.textContent = item.label;
-        row.appendChild(input);
-        row.appendChild(span);
-        body.appendChild(row);
-      });
-      section.appendChild(body);
-      wrap.appendChild(section);
-    });
-  }
-
-  function defaultItems() {
-    var items = [];
-    ["pre", "durante", "pos"].forEach(function (phase) {
-      (CHECKLIST_TEMPLATE[phase] || []).forEach(function (label) {
-        items.push({ phase: phase, label: label, checked: false });
-      });
-    });
-    return items;
-  }
-
   window.selStatus = function (s) {
     currentStatus = s;
     document.querySelectorAll(".st-opt").forEach(function (btn) {
@@ -205,15 +167,13 @@
     $("#fTitle").value = entry ? entry.title : "";
     $("#fResp").value = entry ? entry.responsible : "";
     $("#fType").value = entry ? entry.type : "video";
+    $("#fLink").value = entry ? entry.link || "" : "";
     $("#fNotes").value = entry ? entry.notes || "" : "";
     $("#btnDelEntry").style.display = entry ? "inline-block" : "none";
     $("#statusGrp").style.display = entry ? "block" : "none";
 
     currentStatus = entry ? entry.status : "a_gravar";
     if (entry) window.selStatus(currentStatus);
-
-    window._modalItems = entry ? entry.items : defaultItems();
-    buildChecklistUI(window._modalItems);
 
     $("#ovEntry").classList.add("open");
     setTimeout(function () { $("#fTitle").focus(); }, 50);
@@ -235,8 +195,8 @@
       title: title,
       responsible: responsible,
       type: $("#fType").value,
-      notes: $("#fNotes").value.trim(),
-      items: window._modalItems
+      link: $("#fLink").value.trim(),
+      notes: $("#fNotes").value.trim()
     };
 
     if (editingId) {
@@ -247,7 +207,10 @@
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload)
       })
-        .then(function (r) { if (!r.ok) throw new Error("Falha ao salvar."); return r.json(); })
+        .then(function (r) {
+          if (!r.ok) return readError(r, "Falha ao salvar.").then(function (e) { throw e; });
+          return r.json();
+        })
         .then(function (data) {
           var idx = entries.findIndex(function (e) { return e.id === editingId; });
           if (idx !== -1) entries[idx] = data.entry;
@@ -262,7 +225,10 @@
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload)
       })
-        .then(function (r) { if (!r.ok) throw new Error("Falha ao salvar."); return r.json(); })
+        .then(function (r) {
+          if (!r.ok) return readError(r, "Falha ao salvar.").then(function (e) { throw e; });
+          return r.json();
+        })
         .then(function (data) {
           entries.push(data.entry);
           closeEntryModal();
@@ -277,7 +243,9 @@
     if (!editingId) return;
     if (!confirm("Excluir essa gravação? Não dá pra desfazer.")) return;
     fetch(API + "?id=" + encodeURIComponent(editingId), { method: "DELETE" })
-      .then(function (r) { if (!r.ok) throw new Error("Falha ao excluir."); })
+      .then(function (r) {
+        if (!r.ok) return readError(r, "Falha ao excluir.").then(function (e) { throw e; });
+      })
       .then(function () {
         entries = entries.filter(function (e) { return e.id !== editingId; });
         closeEntryModal();

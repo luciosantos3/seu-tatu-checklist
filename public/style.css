@@ -89,14 +89,8 @@ body{background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSy
 .st-opt.sel-revisao{background:#2e2650;color:#a78bfa;border-color:#5b21b6}
 .st-opt.sel-concluido{background:var(--green-soft);color:#4ade80;border-color:#166534}
 
-.phase-section{background:var(--bg3);border:1px solid var(--border);border-radius:var(--r);overflow:hidden}
-.phase-hd{padding:10px 14px;display:flex;align-items:center;gap:8px;border-bottom:1px solid var(--border);font-size:12px;font-weight:700}
-.phase-num{width:18px;height:18px;border-radius:50%;background:var(--blue-soft);color:var(--glow);display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:800;flex-shrink:0}
-.phase-body{padding:8px 10px;display:flex;flex-direction:column;gap:2px}
-.check-item{display:flex;align-items:flex-start;gap:9px;padding:7px 8px;border-radius:6px;cursor:pointer;font-size:12.5px;color:var(--text2)}
-.check-item:hover{background:var(--bg4)}
-.check-item input{margin-top:2px;width:15px;height:15px;accent-color:var(--glow);flex-shrink:0}
-.check-item.checked span{color:var(--text);text-decoration:line-through;text-decoration-color:var(--text3)}
+.card-link{display:block;font-size:11px;color:var(--glow);text-decoration:none;margin-bottom:8px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.card-link:hover{text-decoration:underline}
 
 .modal-actions{display:flex;gap:10px;justify-content:flex-end;align-items:center;flex-wrap:wrap}
 .btn-cancel{background:transparent;border:1px solid var(--border2);border-radius:var(--r);padding:9px 18px;font-size:13px;color:var(--text2);cursor:pointer;font-family:inherit}

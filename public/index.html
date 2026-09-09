@@ -84,6 +84,7 @@
         <option value="ugc">UGC</option>
       </select>
     </div>
+    <div class="fg"><label class="flbl">Link de referência</label><input class="finput" id="fLink" type="url" placeholder="https://..."/></div>
     <div class="fg"><label class="flbl">Observações</label><textarea class="ftxt" id="fNotes" placeholder="Referência, cenário, qualquer detalhe importante..."></textarea></div>
 
     <div class="fg" id="statusGrp" style="display:none">
@@ -96,8 +97,6 @@
       </div>
     </div>
 
-    <div id="checklistWrap" style="display:flex;flex-direction:column;gap:12px"></div>
-
     <div class="modal-actions">
       <button class="btn-del" id="btnDelEntry" style="display:none" onclick="deleteEntry()">Excluir</button>
       <button class="btn-cancel" onclick="closeEntryModal()">Cancelar</button>
@@ -108,7 +107,6 @@
 
 <div class="toast" id="toast"></div>
 
-<script src="checklist-data.js"></script>
 <script src="app.js"></script>
 </body>
 </html>
