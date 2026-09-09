@@ -50,9 +50,14 @@ exports.handler = async (event) => {
     const store = getStore(STORE_NAME);
 
     if (event.httpMethod === "GET") {
-      const entries = await loadEntries(store);
-      // Lazily persist the pruned list so the store never keeps growing.
-      await saveEntries(store, entries);
+      const raw = (await store.get(KEY, { type: "json" })) || [];
+      const entries = pruneExpired(Array.isArray(raw) ? raw : []);
+      // Only write back when pruning actually removed something — writing
+      // on every plain read created a race: a read-triggered write could
+      // land after a concurrent delete/update and silently undo it.
+      if (entries.length !== raw.length) {
+        await saveEntries(store, entries);
+      }
       entries.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
       return jsonResponse(200, { entries, retentionDays: RETENTION_DAYS });
     }
