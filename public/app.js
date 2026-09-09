@@ -45,14 +45,14 @@
   }
 
   // ---------- Load ----------
-  function load() {
+  function load(silent) {
     fetch(API)
       .then(function (r) {
         if (!r.ok) return readError(r, "Falha ao carregar.").then(function (e) { throw e; });
         return r.json();
       })
       .then(function (data) { entries = data.entries || []; render(); })
-      .catch(function (err) { toast(err.message || "Erro ao carregar dados.", true); });
+      .catch(function (err) { if (!silent) toast(err.message || "Erro ao carregar dados.", true); });
   }
 
   // ---------- Render board ----------
@@ -279,6 +279,30 @@
       navigator.serviceWorker.register("/sw.js").catch(function () {});
     });
   }
+
+  // ---------- Keep data fresh across devices ----------
+  // The board only fetched once on load before, so one person's change
+  // wouldn't show up for someone who already had the page open.
+  function isModalOpen() {
+    var ov = $("#ovEntry");
+    return ov && ov.classList.contains("open");
+  }
+
+  // Refresh whenever the tab/app becomes visible again (covers switching
+  // back from another app on iOS, or another browser tab).
+  document.addEventListener("visibilitychange", function () {
+    if (document.visibilityState === "visible" && !isModalOpen()) load(true);
+  });
+  window.addEventListener("focus", function () {
+    if (!isModalOpen()) load(true);
+  });
+
+  // Light polling as a fallback for whoever just leaves the tab open and
+  // visible without switching away. Skipped while a modal is open so it
+  // never overwrites something someone is actively typing.
+  setInterval(function () {
+    if (document.visibilityState === "visible" && !isModalOpen()) load(true);
+  }, 20000);
 
   load();
 })();
