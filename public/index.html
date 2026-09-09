@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1.0,viewport-fit=cover"/>
+<title>seu tatu — Checklist de Gravação</title>
+
+<!-- PWA / iOS home screen setup -->
+<link rel="manifest" href="/manifest.json"/>
+<meta name="theme-color" content="#0a0d14"/>
+<link rel="apple-touch-icon" href="/apple-touch-icon.png"/>
+<meta name="apple-mobile-web-app-capable" content="yes"/>
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"/>
+<meta name="apple-mobile-web-app-title" content="Checklist"/>
+<link rel="icon" href="/icon-192.png"/>
+
+<link rel="stylesheet" href="style.css"/>
+</head>
+<body>
+
+<div id="splash">
+  <img id="splash-logo" src="logo.png" alt="seu tatu"/>
+  <div id="splash-bar-wrap"><div id="splash-bar"></div></div>
+</div>
+
+<div class="topbar">
+  <div class="topbar-brand">
+    <img src="logo.png" alt="seu tatu" class="topbar-logo"/>
+    <span class="topbar-title">Checklist de Gravação</span>
+  </div>
+  <input class="top-search" id="searchInput" placeholder="🔍 Buscar gravação..." oninput="render()"/>
+  <div class="topbar-right">
+    <button class="btn-blue" onclick="openEntryModal()">+ Nova Gravação</button>
+  </div>
+</div>
+
+<div class="main">
+  <div class="board-header">
+    <div class="board-title">Painel de Gravações</div>
+    <div class="board-sub">Registros ficam disponíveis por 15 dias, depois somem sozinhos.</div>
+  </div>
+
+  <div class="stats-row">
+    <div class="stat-card"><div class="stat-lbl">Total</div><div class="stat-val" id="st-total">0</div></div>
+    <div class="stat-card"><div class="stat-lbl">A Gravar</div><div class="stat-val c-y" id="st-a_gravar">0</div></div>
+    <div class="stat-card"><div class="stat-lbl">Gravando</div><div class="stat-val c-b" id="st-gravando">0</div></div>
+    <div class="stat-card"><div class="stat-lbl">Em Revisão</div><div class="stat-val c-p" id="st-revisao">0</div></div>
+    <div class="stat-card"><div class="stat-lbl">Concluídas</div><div class="stat-val c-g" id="st-concluido">0</div></div>
+  </div>
+
+  <div class="kanban">
+    <div class="col">
+      <div class="col-hd"><div class="col-dot" style="background:#fbbf24"></div><span class="col-name">A Gravar</span><span class="col-badge" id="bdg-a_gravar">0</span></div>
+      <div class="col-body" id="body-a_gravar"></div>
+      <div class="col-foot"><button class="col-add" onclick="openEntryModal()">+ Adicionar</button></div>
+    </div>
+    <div class="col">
+      <div class="col-hd"><div class="col-dot" style="background:#3b82f6"></div><span class="col-name">Gravando</span><span class="col-badge" id="bdg-gravando">0</span></div>
+      <div class="col-body" id="body-gravando"></div>
+    </div>
+    <div class="col">
+      <div class="col-hd"><div class="col-dot" style="background:#a78bfa"></div><span class="col-name">Em Revisão</span><span class="col-badge" id="bdg-revisao">0</span></div>
+      <div class="col-body" id="body-revisao"></div>
+    </div>
+    <div class="col">
+      <div class="col-hd"><div class="col-dot" style="background:#22c55e"></div><span class="col-name">Concluído</span><span class="col-badge" id="bdg-concluido">0</span><span class="col-hint">• some em 15d</span></div>
+      <div class="col-body" id="body-concluido"></div>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL: GRAVAÇÃO -->
+<div class="overlay" id="ovEntry" onclick="if(event.target===this)closeEntryModal()">
+  <div class="modal">
+    <div class="modal-hd"><div class="modal-title" id="entryModalTitle">Nova Gravação</div><button class="modal-x" onclick="closeEntryModal()">✕</button></div>
+
+    <div class="fg"><label class="flbl">Nome do criativo / sessão *</label><input class="finput" id="fTitle" placeholder="Ex: Coleção Inverno — Look 04"/></div>
+    <div class="fg"><label class="flbl">Responsável *</label><input class="finput" id="fResp" placeholder="Seu nome"/></div>
+    <div class="fg"><label class="flbl">Formato</label>
+      <select class="fsel" id="fType">
+        <option value="video">Vídeo</option>
+        <option value="foto">Foto</option>
+        <option value="reels">Reels / Stories</option>
+        <option value="ugc">UGC</option>
+      </select>
+    </div>
+    <div class="fg"><label class="flbl">Observações</label><textarea class="ftxt" id="fNotes" placeholder="Referência, cenário, qualquer detalhe importante..."></textarea></div>
+
+    <div class="fg" id="statusGrp" style="display:none">
+      <label class="flbl">Status</label>
+      <div class="status-row" id="statusRow">
+        <button type="button" class="st-opt" data-s="a_gravar" onclick="selStatus('a_gravar')">A Gravar</button>
+        <button type="button" class="st-opt" data-s="gravando" onclick="selStatus('gravando')">Gravando</button>
+        <button type="button" class="st-opt" data-s="revisao" onclick="selStatus('revisao')">Em Revisão</button>
+        <button type="button" class="st-opt" data-s="concluido" onclick="selStatus('concluido')">Concluído</button>
+      </div>
+    </div>
+
+    <div id="checklistWrap" style="display:flex;flex-direction:column;gap:12px"></div>
+
+    <div class="modal-actions">
+      <button class="btn-del" id="btnDelEntry" style="display:none" onclick="deleteEntry()">Excluir</button>
+      <button class="btn-cancel" onclick="closeEntryModal()">Cancelar</button>
+      <button class="btn-blue" onclick="saveEntry()">Salvar</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script src="checklist-data.js"></script>
+<script src="app.js"></script>
+</body>
+</html>

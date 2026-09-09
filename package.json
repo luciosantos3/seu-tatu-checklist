@@ -1,0 +1,9 @@
+{
+  "name": "seu-tatu-checklist",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Checklist de gravacao de criativos - Seu Tatu",
+  "dependencies": {
+    "@netlify/blobs": "^8.1.0"
+  }
+}
